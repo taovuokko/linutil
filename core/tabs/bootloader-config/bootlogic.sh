@@ -19,6 +19,7 @@ bootlogic_add_param() {
     esac
 }
 
+
 bootlogic_remove_param() {
     param="$1"
     case "$BOOTLOADER_TYPE" in

@@ -1,4 +1,6 @@
 #!/bin/sh -e
+# Main entrypoint for the tool
+# Loads modules, detects bootloader and initializes UI
 
 . "$(dirname "$0")/../common-script.sh"
 checkEscalationTool

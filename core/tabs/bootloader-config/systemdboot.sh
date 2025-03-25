@@ -1,11 +1,12 @@
-#!/bin/sh -e
+#!/bin/sh
+# systemd specific logic: managing kernel parameters and boot entries
 
-BOOT_DIR="/boot"
-ENTRY_DIR="$BOOT_DIR/loader/entries"
-BACKUP_DIR="$ENTRY_DIR/backup"
-SELECTED_ENTRY=""
+
 
 init_systemdboot_config() {
+    ENTRY_DIR="/boot/loader/entries"
+    BACKUP_DIR="$ENTRY_DIR/backup"
+
     [ -d "$ENTRY_DIR" ] || {
         print_error "Entry directory not found: $ENTRY_DIR"
         exit 1
@@ -48,7 +49,9 @@ backup_systemdboot_entry() {
     fi
 
     ENTRY_NAME=$(basename "$SYSTEMDBOOT_ENTRY")
-    BACKUP_PATH="/boot/loader/entries/backup/${ENTRY_NAME}.bak"
+    BACKUP_DIR="${SYSTEMDBOOT_ENTRY%/*}/backup"
+    mkdir -p "$BACKUP_DIR"
+    BACKUP_PATH="$BACKUP_DIR/${ENTRY_NAME}.bak"
 
     if cp "$SYSTEMDBOOT_ENTRY" "$BACKUP_PATH"; then
         print_success "Backup created at $BACKUP_PATH"
@@ -65,7 +68,10 @@ restore_systemdboot_entry() {
         return 1
     }
 
-    local backup_path="$BACKUP_DIR/$(basename "$SYSTEMDBOOT_ENTRY").bak"
+    local BACKUP_DIR="${SYSTEMDBOOT_ENTRY%/*}/backup"
+        mkdir -p "$BACKUP_DIR"
+        backup_path="$BACKUP_DIR/$(basename "$SYSTEMDBOOT_ENTRY").bak"
+
 
     [ -f "$backup_path" ] || {
         print_warning "No backup file found: $backup_path"
@@ -83,35 +89,36 @@ restore_systemdboot_entry() {
 
 add_systemdboot_param() {
     param="$1"
+
     if [ -z "$SYSTEMDBOOT_ENTRY" ]; then
         print_error "No systemd-boot entry selected."
         return 1
     fi
 
+    # Must have an existing options line; fail gracefully if missing
+    if ! grep -q "^options" "$SYSTEMDBOOT_ENTRY"; then
+        print_error "Missing 'options' line in $SYSTEMDBOOT_ENTRY"
+        return 1
+    fi
+
     current_options=$(grep "^options" "$SYSTEMDBOOT_ENTRY" | cut -d' ' -f2-)
+
     if echo "$current_options" | grep -qw "$param"; then
         print_info "Parameter '$param' already exists."
         return 0
     fi
 
-    if [ -n "$current_options" ]; then
-        new_options="options $current_options $param"
-    else
-        new_options="options $param"
-    fi
+    new_options="options $current_options $param"
 
-    new_options=$(echo "$new_options" | sed 's/  */ /g')
+    # Normalize spacing
+    new_options=$(echo "$new_options" | sed 's/  */ /g' | sed 's/^ *//;s/ *$//')
 
-    if grep -q "^options" "$SYSTEMDBOOT_ENTRY"; then
-        if ! sed -i "s/^options.*/$new_options/" "$SYSTEMDBOOT_ENTRY"; then
-            print_error "Failed to update options in $SYSTEMDBOOT_ENTRY"
-            return 1
-        fi
-    else
-        if ! echo "$new_options" >> "$SYSTEMDBOOT_ENTRY"; then
-            print_error "Failed to append options to $SYSTEMDBOOT_ENTRY"
-            return 1
-        fi
+    # Escape for sed
+    escaped_opts=$(printf '%s\n' "$new_options" | sed 's/[&/\]/\\&/g')
+
+    if ! sed -i "s/^options.*/$escaped_opts/" "$SYSTEMDBOOT_ENTRY"; then
+        print_error "Failed to update options in $SYSTEMDBOOT_ENTRY"
+        return 1
     fi
 
     print_success "Parameter '$param' added."
@@ -134,7 +141,7 @@ show_systemdboot_params() {
         echo "$current_options"
     fi
     printf "\nPress Enter to return to the main menu..."
-    read _
+    read -r _
     return 0
 }
 
@@ -151,7 +158,11 @@ remove_systemdboot_param() {
         return 1
     fi
 
+    # Define and create backup path dynamically
+    BACKUP_DIR="${SYSTEMDBOOT_ENTRY%/*}/backup"
+    mkdir -p "$BACKUP_DIR"
     backup_path="$BACKUP_DIR/$(basename "$SYSTEMDBOOT_ENTRY").bak"
+
     cp "$SYSTEMDBOOT_ENTRY" "$backup_path" || {
         print_error "Failed to backup entry before removal"
         return 1
@@ -182,13 +193,15 @@ remove_systemdboot_param() {
     fi
 
     new_line="options $new_options"
+    escaped_line=$(printf '%s\n' "$new_line" | sed 's/[&/\]/\\&/g')
+
     if grep -q "^options" "$SYSTEMDBOOT_ENTRY"; then
-        if ! sed -i "s|^options.*|$new_line|" "$SYSTEMDBOOT_ENTRY"; then
+        if ! sed -i "s|^options.*|$escaped_line|" "$SYSTEMDBOOT_ENTRY"; then
             print_error "Failed to update entry file"
             return 1
         fi
     else
-        if ! echo "$new_line" >> "$SYSTEMDBOOT_ENTRY"; then
+        if ! echo "$escaped_line" >> "$SYSTEMDBOOT_ENTRY"; then
             print_error "Failed to append new options to $SYSTEMDBOOT_ENTRY"
             return 1
         fi
@@ -197,7 +210,6 @@ remove_systemdboot_param() {
     print_success "Parameter '$param' removed from entry"
     return 0
 }
-
 
 
 

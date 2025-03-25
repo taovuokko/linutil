@@ -1,9 +1,8 @@
 #!/bin/sh
-#  Generic UI module for kernel parameter management
+#  Generic UI module
 
 CYAN=$(tput setaf 6)
 RC=$(tput sgr0)
-
 
 keyboard_params_menu() {
     echo "Select keyboard-related parameters to add (separated by spaces):"
@@ -90,32 +89,6 @@ general_params_menu() {
     select_params "1 2 3 4 5 6" "loglevel=3 quiet splash swappiness=10 vm.dirty_ratio=20 vm_dirty_background_ratio=10"
 }
 
-remove_parameters() {
-    clear
-    print_header "Remove Kernel Parameters"
-
-    current_params=$(bootlogic_show_params_raw)
-    if [ -z "$current_params" ]; then
-        print_warning "No kernel parameters found."
-        printf "\nPress Enter to return to the main menu..."
-        read _
-        return
-    fi
-
-    echo "Current kernel parameters:"
-    echo "$current_params"
-    echo
-    echo "To remove, type the exact parameter(s) to be deleted."
-    printf "Separate multiple parameters with spaces: "
-    read params_to_remove
-
-    for param in $params_to_remove; do
-        bootlogic_remove_param "$param"
-    done
-
-    printf "\nPress Enter to return to the main menu..."
-    read _
-}
 
 
 add_parameters() {
@@ -132,7 +105,7 @@ add_parameters() {
         print_menu_item 8 "Touchpad"
         print_menu_item 9 "Return to Main Menu"
         printf "%sYour choice: %s" "$CYAN" "$RC"
-        read choice
+        read -r choice
         if ! echo "1 2 3 4 5 6 7 8 9" | grep -qw "$choice"; then
             print_warning "Invalid choice. Please enter a number between 1 and 9."
             sleep 1
@@ -154,6 +127,10 @@ add_parameters() {
         esac
     done
 }
+restore_boot_config() {
+    bootlogic_restore_config
+    return
+}
 
 main_menu() {
     bootlogic_backup_config
@@ -166,14 +143,14 @@ main_menu() {
         print_menu_item 4 "Update Bootloader Configuration and exit"
         print_menu_item 5 "Exit without changes"
         printf "%sYour choice: %s" "${CYAN}" "${NC}"
-        read main_choice
+        read -r main_choice
         case "$main_choice" in
             1) add_parameters ;;
             2) remove_parameters ;;
             3) bootlogic_show_params ;;
             4) update_boot_config_and_exit ;;  
-            5)
-                restore_boot_config  
+            5) restore_boot_config 
+
                 exit 0
                 ;;
             *)

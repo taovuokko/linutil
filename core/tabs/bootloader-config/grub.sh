@@ -1,8 +1,23 @@
 #!/bin/sh
+# GRUB parameter and config manipulation logic
+
+backup_grub() {
+    cp "$grub_file" "$backup_file"
+    print_success "GRUB file backed up to $backup_file."
+}
+
+restore_grub() {
+    if [ -f "$backup_file" ]; then
+        cp "$backup_file" "$grub_file"
+        print_success "GRUB file restored from backup."
+    else
+        print_warning "No backup file found."
+    fi
+}
 
 init_grub_config() {
-    grub_file="/etc/default/grub"
-    backup_file="/etc/default/grub.bak"
+    grub_file="${grub_file:-/etc/default/grub}"
+    backup_file="${backup_file:-/etc/default/grub.bak}"
 
     if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT" "$grub_file"; then
         grub_cmdline="GRUB_CMDLINE_LINUX_DEFAULT"
@@ -17,25 +32,29 @@ init_grub_config() {
 add_kernel_param() {
     param="$1"
 
-    # Check if the line exists
     if ! grep -q "^${grub_cmdline}" "$grub_file"; then
         print_error "The line ${grub_cmdline} was not found in the file."
         return 1
     fi
 
-    # Check if the parameter already exists
     current_line=$(grep "^${grub_cmdline}" "$grub_file" | cut -d'"' -f2)
+
     if echo "$current_line" | grep -qw "$param"; then
         print_info "Parameter '$param' is already present."
         return 0
     fi
 
-    # Add the parameter
+ 
     new_line="${grub_cmdline}=\"${current_line} ${param}\""
-    sed -i "s|^${grub_cmdline}=\".*\"|${new_line}|" "$grub_file" || {
+
+    # Escape for sed
+    escaped_line=$(printf '%s\n' "$new_line" | sed 's/[&/\]/\\&/g')
+
+    sed -i "s|^${grub_cmdline}=\".*\"|${escaped_line}|" "$grub_file" || {
         print_error "Sed command failed."
         return 1
     }
+
     print_success "Parameter '$param' added."
 }
 
@@ -43,7 +62,7 @@ remove_kernel_param() {
     param="$1"
 
     current_line="$(
-        sed -n "s/^[[:space:]]*${grub_cmdline}[[:space:]]*=\"\\(.*\\)\"/\\1/p" "${grub_file}"
+        sed -n "s/^[[:space:]]*${grub_cmdline}[[:space:]]*=\"\\(.*\\)\"/\\1/p" "$grub_file"
     )"
 
     if [ -z "$current_line" ]; then
@@ -51,27 +70,28 @@ remove_kernel_param() {
         return 1
     fi
 
-    # Check if the parameter is on the line
     if ! echo "$current_line" | grep -qw "$param"; then
         print_warning "The parameter '$param' is not found in $grub_cmdline."
         return 0
     fi
 
-    # Remove the parameter (simple removal might leave an extra space)
+    # Clean up spaces after removing the parameter
     new_line="$(
         echo "$current_line" |
-            sed -E "s/(^| )${param}($| )/ /g" |
-            sed -E 's/^[[:space:]]*//' |
-            sed -E 's/[[:space:]]*$//'
+        sed -E "s/(^| )${param}($| )/ /g" |
+        sed -E 's/^[[:space:]]*//' |
+        sed -E 's/[[:space:]]*$//'
     )"
-
-    # Update the line
-    sed -i "0,/^[[:space:]]*${grub_cmdline}[[:space:]]*=\".*\"/s//${grub_cmdline}=\"${new_line}\"/" "${grub_file}" || {
+    # Replace only the first matching line (if multiple GRUB_CMDLINE entrie exist)
+    sed -i "0,/^[[:space:]]*${grub_cmdline}[[:space:]]*=\".*\"/s//${grub_cmdline}=\"${new_line}\"/" "$grub_file" || {
         print_error "Sed command failed while removing parameter."
         return 1
     }
+
     print_success "Parameter '$param' removed from $grub_cmdline in GRUB settings."
 }
+
+
 
 show_current_params() {
     clear
@@ -79,6 +99,6 @@ show_current_params() {
     echo "Current kernel parameters in $grub_cmdline:"
     echo "$current_params"
     printf "\nPress Enter to return to the main menu..."
-    read _
+    read -r _
 }
 

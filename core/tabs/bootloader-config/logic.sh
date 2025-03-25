@@ -1,35 +1,7 @@
 #!/bin/sh
+# Core logic for bootloader agnostic operations
 
-backup_grub() {
-    cp "$grub_file" "$backup_file"
-    print_success "GRUB file backed up to $backup_file."
-}
 
-restore_grub() {
-    if [ -f "$backup_file" ]; then
-        cp "$backup_file" "$grub_file"
-        print_success "GRUB file restored from backup."
-    else
-        print_warning "No backup file found."
-    fi
-}
-
-validate_parameter() {
-    param="$1"
-    max_length=50
-
-    if [ "${#param}" -gt "$max_length" ]; then
-        print_error "Parameter exceeds the maximum length of $max_length characters."
-        return 1
-    fi
-
-    if ! echo "$param" | grep -Eq '^[a-zA-Z0-9=_-]+$'; then
-        print_error "Parameter contains invalid characters. Allowed are letters, digits, '=', '-', and '_'."
-        return 1
-    fi
-
-    return 0
-}
 select_params() {
     options="$1"
     params="$2"
@@ -48,7 +20,7 @@ select_params() {
     fi
 
     echo "Enter the numbers (separated by spaces):"
-    read selected_options
+    read -r selected_options
 
     for selected in $selected_options; do
         found=false

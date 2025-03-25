@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-## Detects system bootloader
+## Logic for detecting system bootloader
 
 detect_bootloader() {
     if [ -f /etc/systemd/bootctl.json ] || bootctl is-installed 2>/dev/null; then
