@@ -27,7 +27,6 @@ select_systemdboot_entry() {
         exit 1
     fi
 
-    # Näytä valikko
     i=1
     printf "%s\n" "Select an entry to modify:"
     for entry in $entries; do
@@ -35,7 +34,7 @@ select_systemdboot_entry() {
         i=$((i + 1))
     done
 
-    # Lue valinta
+    
     printf "Enter the number of the entry: "
     read selection
 
@@ -53,6 +52,7 @@ select_systemdboot_entry() {
     print_error "Invalid selection."
     return 1
 }
+
 
 backup_systemdboot_entry() {
     if [ -z "$SYSTEMDBOOT_ENTRY" ]; then
