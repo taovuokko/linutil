@@ -20,27 +20,39 @@ init_systemdboot_config() {
 
 select_systemdboot_entry() {
     ENTRY_DIR="/boot/loader/entries"
-
     entries=$(find "$ENTRY_DIR" -maxdepth 1 -type f -name "*.conf")
+
     if [ -z "$entries" ]; then
         print_error "No systemd-boot entries found in $ENTRY_DIR!"
         exit 1
     fi
 
-    echo "Select an entry to modify:"
-    PS3="Enter the number of the entry: "
-    select entry_file in $entries; do
-        if [ -n "$entry_file" ]; then
-            export SYSTEMDBOOT_ENTRY="$entry_file"
-            break
-        else
-            echo "Invalid selection. Please try again."
-        fi
+    # Näytä valikko
+    i=1
+    printf "%s\n" "Select an entry to modify:"
+    for entry in $entries; do
+        echo "$i) $entry"
+        i=$((i + 1))
     done
 
-    print_info "Selected entry: $SYSTEMDBOOT_ENTRY"
-}
+    # Lue valinta
+    printf "Enter the number of the entry: "
+    read selection
 
+    i=1
+    for entry in $entries; do
+        if [ "$i" = "$selection" ]; then
+            SYSTEMDBOOT_ENTRY="$entry"
+            export SYSTEMDBOOT_ENTRY
+            print_info "Selected entry: $SYSTEMDBOOT_ENTRY"
+            return 0
+        fi
+        i=$((i + 1))
+    done
+
+    print_error "Invalid selection."
+    return 1
+}
 
 backup_systemdboot_entry() {
     if [ -z "$SYSTEMDBOOT_ENTRY" ]; then
