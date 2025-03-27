@@ -1,0 +1,13 @@
+name = "Bootloader Config"
+
+[[data]]
+name = "Kernel Parameter Tool"
+description = """
+Interactive TUI tool for modifying kernel boot parameters (GRUB/systemd-boot).
+Includes audio fixes, power tweaks, display settings, and CPU optimizations.
+
+⚠️ Warning: Some options may affect system stability, performance, or security.
+Use only if you understand what the parameters do.
+"""
+script = "boot-config.sh"
+task_list = "FM K SS"
