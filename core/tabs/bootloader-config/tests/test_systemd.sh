@@ -101,15 +101,22 @@ print_header "TEST 5: Missing options line should fail gracefully"
     cp "$MOCK_SOURCE/entries/arch.conf" "$BROKEN_FILE"
     sed -i '/^options/d' "$BROKEN_FILE"
 
-    export SYSTEMDBOOT_ENTRY="$BROKEN_FILE"
+    if [ -n "$GRUB_CONFIG" ]; then
+        grub_file="$GRUB_CONFIG"
+    else
+        grub_file="$GRUB_MOCK"
+    fi
     . "$SCRIPT_DIR/../systemdboot.sh"
 
-    if add_systemdboot_param "testparam" 2>/dev/null; then
+    export SYSTEMDBOOT_ENTRY_OVERRIDE="$BROKEN_FILE"
+
+    if add_systemdboot_param "testparam"; then
         print_error "FAIL: add_systemdboot_param should have failed"
         exit 1
     else
-        print_success "PASS: Failed as expected when options line is missing"
+        print_success "PASS: add_systemdboot_param failed as expected on missing options line"
     fi
+
 )
 
 

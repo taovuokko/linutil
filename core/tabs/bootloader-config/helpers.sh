@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh 
 
 # Helper functions for colored output, validation and parameter safety checks
 

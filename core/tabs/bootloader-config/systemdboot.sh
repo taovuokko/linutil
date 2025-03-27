@@ -93,10 +93,16 @@ restore_systemdboot_entry() {
 
 add_systemdboot_param() {
     param="$1"
+# Support override for tests
+    if [ -n "$SYSTEMDBOOT_ENTRY_OVERRIDE" ]; then
+        SYSTEMDBOOT_ENTRY="$SYSTEMDBOOT_ENTRY_OVERRIDE"
+    fi
+
     if [ -z "$SYSTEMDBOOT_ENTRY" ]; then
         print_error "No systemd-boot entry selected."
-        return 1
+         return 1
     fi
+
     # Require an existing options line
     if ! grep -q "^options" "$SYSTEMDBOOT_ENTRY"; then
         print_error "Missing 'options' line in $SYSTEMDBOOT_ENTRY"

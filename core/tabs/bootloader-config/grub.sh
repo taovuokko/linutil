@@ -16,33 +16,33 @@ restore_grub() {
 }
 
 init_grub_config() {
-    # List of candidate GRUB configuration files.
-    candidates="/etc/default/grub /etc/default/grub2"
-
-    grub_file=""
-    for file in $candidates; do
-        if [ -f "$file" ]; then
-            grub_file="$file"
-            break
-        fi
-    done
+    # Allow test override
+    if [ -n "$GRUB_CONFIG" ]; then
+        grub_file="$GRUB_CONFIG"
+    else
+        candidates="/etc/default/grub /etc/default/grub2"
+        for file in $candidates; do
+            if [ -f "$file" ]; then
+                grub_file="$file"
+                break
+            fi
+        done
+    fi
 
     if [ -z "$grub_file" ]; then
-        print_error "No GRUB configuration file found in standard locations: $candidates"
+        print_error "No GRUB configuration file found in standard locations or via GRUB_CONFIG."
         exit 1
     fi
 
-    # Set a backup file location based on the detected configuration file.
     backup_file="${grub_file}.bak"
 
-    # Determine which GRUB_CMDLINE variable is present.
     if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT" "$grub_file"; then
         grub_cmdline="GRUB_CMDLINE_LINUX_DEFAULT"
     elif grep -q "^GRUB_CMDLINE_LINUX" "$grub_file"; then
         grub_cmdline="GRUB_CMDLINE_LINUX"
     else
-        print_error "Neither GRUB_CMDLINE_LINUX_DEFAULT nor GRUB_CMDLINE_LINUX found in $grub_file."
-        exit 1
+        print_error "Missing GRUB_CMDLINE_LINUX[_DEFAULT] in $grub_file."
+        return 1
     fi
 
     print_info "Using GRUB configuration file: $grub_file"

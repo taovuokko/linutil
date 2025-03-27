@@ -4,6 +4,14 @@
 CYAN=$(tput setaf 6)
 RC=$(tput sgr0)
 
+audio_params_menu() {
+    echo "Select audio-related parameters to add (separated by spaces):"
+    echo "1. snd-intel-dspcfg.dsp_driver=1 - Force legacy HDA audio driver (bypasses modern SOF/SST audio stack)"
+    echo "2. snd_hda_intel.power_save=0 - Disable power saving for HDA audio"
+    echo "3. snd-hda-intel.model=generic - Use generic model for compatibility"
+    select_params "1 2 3" "snd-intel-dspcfg.dsp_driver=1 snd_hda_intel.power_save=0 snd-hda-intel.model=generic"
+}
+
 keyboard_params_menu() {
     echo "Select keyboard-related parameters to add (separated by spaces):"
     echo "1. i8042.nomux - Bypass PS/2 multiplexer"
@@ -19,9 +27,8 @@ cpu_params_menu() {
     echo "2. acpi=off - Disable ACPI"
     echo "3. nmi_watchdog=0 - Disable NMI watchdog"
     echo "4. processor.max_cstate=1 - Limit CPU idle states"
-    echo "5. noapic - Disable the APIC (Advanced Programmable Interrupt Controller)"
-    echo "6. ibt=off - Disable Indirect Branch Tracking (may affect security)"
-    select_params "1 2 3 4 5 6" "intel_pstate=disable acpi=off nmi_watchdog=0 processor.max_cstate=1 noapic ibt=off"
+    echo "5. ibt=off - Disable Indirect Branch Tracking (may affect security!)"
+    select_params "1 2 3 4 5" "intel_pstate=disable acpi=off nmi_watchdog=0 processor.max_cstate=1 ibt=off"
 }
 
 power_params_menu() {
@@ -81,13 +88,11 @@ add_parameters() {
         print_menu_item 3 "Display"
         print_menu_item 4 "General Settings"
         print_menu_item 5 "Keyboard & PS/2 Controller"
-        print_menu_item 6 "Network"
-        print_menu_item 7 "Power Management"
-        print_menu_item 8 "Touchpad"
-        print_menu_item 9 "Return to Main Menu"
+        print_menu_item 6 "Power Management"
+        print_menu_item 7 "Return to Main Menu"
         printf "%sYour choice: %s" "$CYAN" "$RC"
         read -r choice
-        if ! echo "1 2 3 4 5 6 7 8 9" | grep -qw "$choice"; then
+        if ! echo "1 2 3 4 5 6 7" | grep -qw "$choice"; then
             print_warning "Invalid choice. Please enter a number between 1 and 9."
             sleep 1
             continue
@@ -98,10 +103,8 @@ add_parameters() {
             3) display_params_menu ;;
             4) general_params_menu ;;
             5) keyboard_params_menu ;;
-            6) network_params_menu ;;
-            7) power_params_menu ;;
-            8) touchpad_params_menu ;;
-            9)
+            6) power_params_menu ;;
+            7)
                 print_info "Returning to main menu..."
                 break
                 ;;

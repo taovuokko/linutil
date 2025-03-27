@@ -3,14 +3,23 @@
 ## Logic for detecting system bootloader
 
 detect_bootloader() {
-    if [ -f /etc/systemd/bootctl.json ] || bootctl is-installed 2>/dev/null; then
+    # Find if syste uses SystemD boot
+    if [ -d /boot/loader ] || [ -d /efi/loader ] || [ -d /boot/EFI/systemd ] || command -v bootctl >/dev/null; then
         BOOTLOADER_TYPE="systemd-boot"
-    elif [ -f /etc/default/grub ]; then
+        return 0
+    fi
+
+    # Find if system uses GRUB
+    if [ -f /etc/default/grub ] || [ -f /boot/grub/grub.cfg ] || [ -f /boot/grub2/grub.cfg ] || command -v grub-install >/dev/null || command -v grub2-install >/dev/null; then
         BOOTLOADER_TYPE="grub"
+        return 0
     else
         BOOTLOADER_TYPE="unknown"
     fi
 }
+
+
+
 
 print_bootloader_info() {
     case "$BOOTLOADER_TYPE" in
