@@ -1,5 +1,5 @@
 #!/bin/sh
-# typos: disable
+# typos: disable=HDA,hda
 # Generic UI module for selecting kernel boot parameters
 
 CYAN=$(tput setaf 6)
