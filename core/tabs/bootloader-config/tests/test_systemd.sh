@@ -1,4 +1,5 @@
 #!/bin/sh 
+# shellcheck disable=SC1091,SC2030,2031,SC2034
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/../helpers.sh"
@@ -119,7 +120,46 @@ print_header "TEST 5: Missing options line should fail gracefully"
 
 )
 
+# === TEST 6: Add parameter with special characters ===
+print_header "TEST 6: Parameter with special characters"
 
+(
+    export SYSTEMDBOOT_ENTRY
+    . "$SCRIPT_DIR/../systemdboot.sh"
+
+    add_systemdboot_param "module_blacklist=foo,bar"
+    add_systemdboot_param "rd.driver.blacklist=xyz"
+
+    if grep -q 'module_blacklist=foo,bar' "$SYSTEMDBOOT_ENTRY" && \
+       grep -q 'rd.driver.blacklist=xyz' "$SYSTEMDBOOT_ENTRY"; then
+        print_success "PASS: Special character parameters added correctly"
+    else
+        print_error "FAIL: One or more special character parameters not found"
+        exit 1
+    fi
+)
+
+# === TEST 7: Add to empty options line ===
+print_header "TEST 7: Add to empty options line"
+
+(
+    EMPTY_FILE="$TEST_DIR/entries/empty_options.conf"
+    printf "title Arch\nlinux /vmlinuz-linux\noptions\n" > "$EMPTY_FILE"
+    export SYSTEMDBOOT_ENTRY_OVERRIDE="$EMPTY_FILE"
+    . "$SCRIPT_DIR/../systemdboot.sh"
+
+    if add_systemdboot_param "foo=bar"; then
+        if grep -q '^options foo=bar$' "$EMPTY_FILE"; then
+            print_success "PASS: Parameter added to empty options line"
+        else
+            print_error "FAIL: Parameter added but options line not formatted correctly"
+            exit 1
+        fi
+    else
+        print_error "FAIL: add_systemdboot_param failed on empty options line"
+        exit 1
+    fi
+)
 # Clean up
 print_info "Cleaning up test files..."
 rm -rf "$TEST_DIR"

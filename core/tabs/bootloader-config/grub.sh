@@ -16,7 +16,6 @@ restore_grub() {
 }
 
 init_grub_config() {
-    # Allow test override
     if [ -n "$GRUB_CONFIG" ]; then
         grub_file="$GRUB_CONFIG"
     else
@@ -36,9 +35,9 @@ init_grub_config() {
 
     backup_file="${grub_file}.bak"
 
-    if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT" "$grub_file"; then
+    if grep -E -q '^[[:space:]]*GRUB_CMDLINE_LINUX_DEFAULT=' "$grub_file"; then
         grub_cmdline="GRUB_CMDLINE_LINUX_DEFAULT"
-    elif grep -q "^GRUB_CMDLINE_LINUX" "$grub_file"; then
+    elif grep -E -q '^[[:space:]]*GRUB_CMDLINE_LINUX=' "$grub_file"; then
         grub_cmdline="GRUB_CMDLINE_LINUX"
     else
         print_error "Missing GRUB_CMDLINE_LINUX[_DEFAULT] in $grub_file."
@@ -49,34 +48,35 @@ init_grub_config() {
 }
 
 
+
 add_kernel_param() {
     param="$1"
 
-    if ! grep -q "^${grub_cmdline}" "$grub_file"; then
-        print_error "The line ${grub_cmdline} was not found in the file."
+    if ! grep -q "^${grub_cmdline}=" "$grub_file"; then
+        print_error "Line ${grub_cmdline}= not found."
         return 1
     fi
 
-    current_line=$(grep "^${grub_cmdline}" "$grub_file" | cut -d'"' -f2)
+    current_line=$(sed -n "s/^${grub_cmdline}=\"\(.*\)\"/\1/p" "$grub_file")
 
-    if echo "$current_line" | grep -qw "$param"; then
-        print_info "Parameter '$param' is already present."
+    if printf "%s\n" "$current_line" | grep -qw "$param"; then
+        print_info "Parameter '$param' already present."
         return 0
     fi
 
- 
-    new_line="${grub_cmdline}=\"${current_line} ${param}\""
+    updated_line="${grub_cmdline}=\"${current_line} ${param}\""
+    updated_line=$(printf "%s\n" "$updated_line" | sed -E 's/[[:space:]]+/ /g; s/ $//')
 
-    # Escape for sed
-    escaped_line=$(printf '%s\n' "$new_line" | sed 's/[&/\]/\\&/g')
+    escaped=$(printf "%s\n" "$updated_line" | sed 's/[&/\]/\\&/g')
 
-    sed -i "s|^${grub_cmdline}=\".*\"|${escaped_line}|" "$grub_file" || {
-        print_error "Sed command failed."
+    sed -i "s|^${grub_cmdline}=\".*\"|${escaped}|" "$grub_file" || {
+        print_error "Failed to update line with sed."
         return 1
     }
 
     print_success "Parameter '$param' added."
 }
+
 
 remove_kernel_param() {
     param="$1"

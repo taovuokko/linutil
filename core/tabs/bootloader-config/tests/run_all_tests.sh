@@ -1,6 +1,2 @@
-#!/bin/sh 
-
-cd "$(dirname "$0")" || exit 1
-
-./test_grub.sh
-./test_systemd.sh
+#!/bin/sh
+cd "${0%/*}" && for t in test_*.sh; do ./"$t" || exit 1; done

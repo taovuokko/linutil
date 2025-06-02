@@ -1,4 +1,6 @@
 #!/bin/sh -e
+
+# shellcheck disable=SC1091
 # Main entrypoint for the Kernel Parameter Tool
 
 # Resolve absolute path
@@ -18,6 +20,7 @@ if [ "$ESCALATION_TOOL" != "eval" ]; then
 fi
 
 # Load bootloader modules
+. "$SCRIPT_DIR/helpers.sh"
 . "$SCRIPT_DIR/helpers.sh"
 . "$SCRIPT_DIR/logic.sh"
 . "$SCRIPT_DIR/grub.sh"

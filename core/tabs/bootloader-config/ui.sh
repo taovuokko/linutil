@@ -8,7 +8,7 @@ RC=$(tput sgr0)
 
 audio_params_menu() {
     echo "Select audio-related parameters to add (separated by spaces):"
-    echo "1. snd-intel-dspcfg.dsp_driver=1 - Force legacy HDA audio driver (bypasses modern SOF/SST audio stack)"
+    echo "1. snd-intel-dspcfg.dsp_driver=1 - Force legacy HDA audio driver"
     echo "2. snd_hda_intel.power_save=0 - Disable power saving for HDA audio"
     echo "3. snd-hda-intel.model=generic - Use generic model for compatibility"
     select_params "1 2 3" "snd-intel-dspcfg.dsp_driver=1 snd_hda_intel.power_save=0 snd-hda-intel.model=generic"
@@ -25,12 +25,19 @@ keyboard_params_menu() {
 
 cpu_params_menu() {
     echo "Select CPU-related parameters to add (separated by spaces):"
+    echo "1. intel_pstate=passive - Set Intel power management to passive"
+    echo "2. nmi_watchdog=0 - Disable NMI watchdog"
+    echo "3. processor.max_cstate=1 - Limit CPU idle states"
+    echo "4. idle=halt - Use a simple CPU idle model"
+    select_params "1 2 3 4" "intel_pstate=passive nmi_watchdog=0 processor.max_cstate=1 idle=halt"
+}
+
+cpu_advanced_menu() {
+    echo "⚠️  Advanced CPU parameters (may affect stability/security):"
     echo "1. intel_pstate=disable - Disable Intel power management"
-    echo "2. acpi=off - Disable ACPI"
-    echo "3. nmi_watchdog=0 - Disable NMI watchdog"
-    echo "4. processor.max_cstate=1 - Limit CPU idle states"
-    echo "5. ibt=off - Disable Indirect Branch Tracking (may affect security!)"
-    select_params "1 2 3 4 5" "intel_pstate=disable acpi=off nmi_watchdog=0 processor.max_cstate=1 ibt=off"
+    echo "2. acpi=off - Disable ACPI completely (may break hardware support)"
+    echo "3. ibt=off - Disable Indirect Branch Tracking (security impact)"
+    select_params "1 2 3" "intel_pstate=disable acpi=off ibt=off"
 }
 
 power_params_menu() {
@@ -40,13 +47,10 @@ power_params_menu() {
     echo "3. intel_idle.max_cstate=1 - Limit CPU idle states"
     echo "4. ahci.mobile_lpm_policy=1 - Enable mobile AHCI low power management"
     echo "5. acpi_osi=Linux - Improve ACPI power management for Linux"
-    echo "6. mem_sleep_default=deep - Use a deeper sleep state for suspend"
+    echo "6. mem_sleep_default=deep - Use deeper sleep state for suspend"
     echo "7. pcie_port_pm=off - Disable PCIe port power management"
-    echo "8. intel_pstate=passive - Set Intel power management to passive"
-    echo "9. idle=halt - Use a simple CPU idle model"
-    echo "10. amd_pstate=passive - Enable AMD power saving model for Zen 3/4"
-    echo "11. noresume - Disable resume from suspend/hibernate"
-    select_params "1 2 3 4 5 6 7 8 9 10 11" "pcie_aspm=force usbcore.autosuspend=-1 intel_idle.max_cstate=1 ahci.mobile_lpm_policy=1 acpi_osi=Linux mem_sleep_default=deep pcie_port_pm=off intel_pstate=passive idle=halt amd_pstate=passive noresume"
+    echo "8. amd_pstate=passive - Enable AMD power saving model for Zen 3/4"
+    select_params "1 2 3 4 5 6 7 8" "pcie_aspm=force usbcore.autosuspend=-1 intel_idle.max_cstate=1 ahci.mobile_lpm_policy=1 acpi_osi=Linux mem_sleep_default=deep pcie_port_pm=off amd_pstate=passive"
 }
 
 display_params_menu() {
@@ -74,41 +78,50 @@ general_params_menu() {
     echo "2. quiet - Quiet boot messages"
     echo "3. splash - Show a graphical splash screen"
     echo "4. rootfstype=ext4 - Set root filesystem type to ext4"
-    echo "5. init=/bin/bash - Boot directly into a bash shell"
-    echo "6. ro - Mount root filesystem as read-only"
-    echo "7. rootdelay=5 - Wait 5 seconds for the root device to be available"
-    select_params "1 2 3 4 5 6 7" "loglevel=3 quiet splash rootfstype=ext4 init=/bin/bash ro rootdelay=5"
+    echo "5. ro - Mount root filesystem as read-only"
+    echo "6. rootdelay=5 - Wait 5 seconds for the root device to be available"
+    select_params "1 2 3 4 5 6" "loglevel=3 quiet splash rootfstype=ext4 ro rootdelay=5"
 }
 
+general_advanced_menu() {
+    echo "⚠️  Advanced general parameters:"
+    echo "1. init=/bin/bash - Boot directly into a bash shell (use with caution)"
+    echo "2. noresume - Disable resume from suspend/hibernate (may cause data loss)"
+    select_params "1 2" "init=/bin/bash noresume"
+}
 
 add_parameters() {
     while true; do
         clear
         print_header "Add Kernel Boot Parameters"
         print_menu_item 1 "Audio"
-        print_menu_item 2 "CPU Settings"
-        print_menu_item 3 "Display"
-        print_menu_item 4 "General Settings"
-        print_menu_item 5 "Keyboard & PS/2 Controller"
-        print_menu_item 6 "Power Management"
-        print_menu_item 7 "Return to Main Menu"
+        print_menu_item 2 "Keyboard & PS/2 Controller"
+        print_menu_item 3 "CPU Settings (Basic)"
+        print_menu_item 4 "CPU Settings (Advanced)"
+        print_menu_item 5 "Power Management (Basic)"
+        print_menu_item 6 "Display"
+        print_menu_item 7 "General Settings (Basic)"
+        print_menu_item 8 "General Settings (Advanced)"
+        print_menu_item 9 "Return to Main Menu"
         printf "%sYour choice: %s" "$CYAN" "$RC"
         read -r choice
-        if ! echo "1 2 3 4 5 6 7" | grep -qw "$choice"; then
-            print_warning "Invalid choice. Please enter a number between 1 and 9."
-            sleep 1
-            continue
-        fi
+
         case "$choice" in
             1) audio_params_menu ;;
-            2) cpu_params_menu ;;
-            3) display_params_menu ;;
-            4) general_params_menu ;;
-            5) keyboard_params_menu ;;
-            6) power_params_menu ;;
-            7)
+            2) keyboard_params_menu ;;
+            3) cpu_params_menu ;;
+            4) cpu_advanced_menu ;;
+            5) power_params_menu ;;
+            6) display_params_menu ;;
+            7) general_params_menu ;;
+            8) general_advanced_menu ;;
+            9)
                 print_info "Returning to main menu..."
                 break
+                ;;
+            *)
+                print_warning "Invalid choice. Please enter a number between 1 and 9."
+                sleep 1
                 ;;
         esac
     done
@@ -135,9 +148,9 @@ main_menu() {
             1) add_parameters ;;
             2) remove_parameters ;;
             3) bootlogic_show_params ;;
-            4) update_boot_config_and_exit ;;  
-            5) restore_boot_config 
-
+            4) update_boot_config_and_exit ;;
+            5)
+                restore_boot_config
                 exit 0
                 ;;
             *)

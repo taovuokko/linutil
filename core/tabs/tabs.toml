@@ -1,5 +1,6 @@
 directories = [
     "applications-setup",
+    "bootloader-config",
     "gaming",
     "security",
     "system-setup",

@@ -1,18 +1,19 @@
 #!/bin/sh
 # Core logic for bootloader agnostic operations
 
-
 select_params() {
     options="$1"
     params="$2"
 
+    # shellcheck disable=SC2086
     set -- $options
     option_count=$#
-    option_args="$@"
+    option_args=$*
 
+    # shellcheck disable=SC2086
     set -- $params
     param_count=$#
-    param_args="$@"
+    param_args=$*
 
     if [ "$option_count" -ne "$param_count" ]; then
         print_error "Mismatch between number of options and parameters."
@@ -34,18 +35,13 @@ select_params() {
         if $found; then
             index=1
             for opt in $option_args; do
-                if [ "$opt" = "$selected" ]; then
-                    break
-                fi
+                [ "$opt" = "$selected" ] && break
                 index=$((index + 1))
             done
 
             i=1
             for param in $param_args; do
-                if [ "$i" -eq "$index" ]; then
-                    param_to_add=$param
-                    break
-                fi
+                [ "$i" -eq "$index" ] && { param_to_add=$param; break; }
                 i=$((i + 1))
             done
 

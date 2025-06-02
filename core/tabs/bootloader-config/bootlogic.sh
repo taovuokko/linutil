@@ -50,7 +50,7 @@ bootlogic_show_params() {
             ;;
     esac
 }
-
+# shellcheck disable=SC2154
 bootlogic_show_params_raw() {
     case "$BOOTLOADER_TYPE" in
         grub)

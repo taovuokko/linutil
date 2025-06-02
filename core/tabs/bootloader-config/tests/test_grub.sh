@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC1091,SC2030,2031
 # Automated GRUB tests
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -16,6 +17,7 @@ cp "$MOCK_SOURCE"/* "$TEST_DIR/"
 
 load_grub_env() {
     export GRUB_CONFIG="$GRUB_MOCK"
+    . "$SCRIPT_DIR/../helpers.sh"
     . "$GRUB_MODULE"
 }
 
@@ -105,6 +107,7 @@ print_header "TEST 6: Config without kernel line should fail gracefully"
     sed -i '/^GRUB_CMDLINE_LINUX/d' "$BROKEN_FILE"
 
     export GRUB_CONFIG="$BROKEN_FILE"
+    . "$SCRIPT_DIR/../helpers.sh"
     . "$GRUB_MODULE"
 
     if init_grub_config 2>/dev/null; then
@@ -115,7 +118,47 @@ print_header "TEST 6: Config without kernel line should fail gracefully"
     fi
 )
 
-# Cleanup
-print_info "Cleaning up test files..."
-rm -rf "$TEST_DIR"
-print_success "✅ All GRUB tests completed successfully"
+# === TEST 7: Parameter with special characters ===
+print_header "TEST 7: Parameter with special characters"
+(
+    load_grub_env
+    init_grub_config
+
+    add_kernel_param "module_blacklist=foo,bar"
+    add_kernel_param "rd.driver.blacklist=xyz"
+
+    if grep -q 'module_blacklist=foo,bar' "$GRUB_CONFIG" && \
+       grep -q 'rd.driver.blacklist=xyz' "$GRUB_CONFIG"; then
+        print_success "PASS: Special character parameters added correctly"
+    else
+        print_error "FAIL: One or more special character parameters not found"
+        exit 1
+    fi
+)
+
+# === TEST 8: Add to empty GRUB_CMDLINE_LINUX_DEFAULT ===
+print_header "TEST 8: Add to empty GRUB_CMDLINE_LINUX_DEFAULT"
+(
+    FILE="$TEST_DIR/empty_cmdline"
+    cp "$MOCK_SOURCE/etc_default_grub" "$FILE"
+    sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=""/' "$FILE"
+
+    export GRUB_CONFIG="$FILE"
+    . "$SCRIPT_DIR/../helpers.sh"
+    . "$GRUB_MODULE"
+
+    if ! init_grub_config; then
+        print_error "init_grub_config failed."
+        exit 1
+    fi
+
+    add_kernel_param "testparam"
+
+    if grep -q 'testparam' "$GRUB_CONFIG"; then
+        print_success "PASS: Parameter added to empty GRUB_CMDLINE_LINUX_DEFAULT"
+    else
+        print_error "FAIL: Parameter not added correctly"
+        exit 1
+    fi
+)
+
