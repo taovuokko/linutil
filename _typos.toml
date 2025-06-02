@@ -5,3 +5,11 @@ extend-exclude = ["tui/cool_tips.txt"]
 extend-ignore-identifiers-re = [
     "ratatui",
 ]
+
+extend-ignore-re = [
+    "snd_hda_intel",
+    "snd-hda-intel",
+    "HDA audio",
+    "legacy HDA audio driver",
+    "Disable power saving for HDA audio",
+]
