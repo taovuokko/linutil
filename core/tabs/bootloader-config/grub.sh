@@ -102,7 +102,7 @@ remove_kernel_param() {
         sed -E 's/^[[:space:]]*//' |
         sed -E 's/[[:space:]]*$//'
     )"
-    # Replace only the first matching line (if multiple GRUB_CMDLINE entrie exist)
+    # Replace only the first matching line (if multiple GRUB_CMDLINE entries exist)
     sed -i "0,/^[[:space:]]*${grub_cmdline}[[:space:]]*=\".*\"/s//${grub_cmdline}=\"${new_line}\"/" "$grub_file" || {
         print_error "Sed command failed while removing parameter."
         return 1

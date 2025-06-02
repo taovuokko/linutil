@@ -1,6 +1,5 @@
 #!/bin/sh
-# spell-checker: disable
-
+# typos: disable
 # Generic UI module for selecting kernel boot parameters
 
 CYAN=$(tput setaf 6)

@@ -3,7 +3,7 @@
 ## Logic for detecting system bootloader
 
 detect_bootloader() {
-    # Find if syste uses SystemD boot
+    # Find if system uses SystemD boot
     if [ -d /boot/loader ] || [ -d /efi/loader ] || [ -d /boot/EFI/systemd ] || command -v bootctl >/dev/null; then
         BOOTLOADER_TYPE="systemd-boot"
         return 0
